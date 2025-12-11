@@ -146,16 +146,52 @@ function past(i){return pastPoints[past1_i(i)]+pastPoints[past2_i(i)]+pastPoints
 function past1_i(i){return document.getElementById("past1_"+i).value}
 function past2_i(i){return document.getElementById("past2_"+i).value}
 function past3_i(i){return document.getElementById("past3_"+i).value}
+function umaTotal_i(i){
+  return document.getElementById("pastTotal_"+i).value || 0;
+}
+function kisyuPoint_i(i){
+  return document.getElementById("jockeyP_"+i).value || 0;
+}
+function total_i(i){
+  return document.getElementById("total_"+i).value || 0;
+}
 
 function saveData(){
-if(!selectedKaisai||!selectedRace)return;
-let d={date:dateInput.value,kaisai:selectedKaisai,race:selectedRace,surface:surface.value,
-distance:distance.value,pace:pace.value,pickHorse:pickHorse.value,buy:buyState,hit:hitState,
-oddsLow:oddsLow.value,oddsHigh:oddsHigh.value,memo:memo.value,horses:[]}
-for(let i=1;i<=18;i++){
-d.horses.push({body:body_i(i),time:time_i(i),jockey:jockey_i(i),
-past1:past1_i(i),past2:past2_i(i),past3:past3_i(i)})}
-localStorage.setItem(getKey(),JSON.stringify(d))
+  if(!selectedKaisai||!selectedRace)return;
+
+  let d={
+    date:dateInput.value,
+    kaisai:selectedKaisai,
+    race:selectedRace,
+    surface:surface.value,
+    distance:distance.value,
+    pace:pace.value,
+    pickHorse:pickHorse.value,
+    buy:buyState,
+    hit:hitState,
+    oddsLow:oddsLow.value,
+    oddsHigh:oddsHigh.value,
+    memo:memo.value,
+    horses:[]
+  }
+
+  for(let i=1;i<=18;i++){
+    d.horses.push({
+      body: body_i(i),
+      time: time_i(i),
+      jockey: jockey_i(i),
+      past1: past1_i(i),
+      past2: past2_i(i),
+      past3: past3_i(i),
+
+      // ★★★ これを追加！！ ★★★
+      umaTotal: umaTotal_i(i),
+      kisyuPoint: kisyuPoint_i(i),
+      total: total_i(i)
+    })
+  }
+
+  localStorage.setItem(getKey(), JSON.stringify(d));
 }
 
 function loadData(){
@@ -244,52 +280,58 @@ function exportCSV(){
   const place = selectedKaisai;
 
   let rows=[];
-  let header=[
-    "日付","開催","レース番号","コース","距離m",
-    "馬番","馬体","タイム","騎手",
-    "過去1","過去2","過去3",
-    "馬合計70","騎手点30","総合点100",
-    "ペース予想","指名馬番","購入","的中",
-    "複勝オッズ下","複勝オッズ上","メモ"
-  ];
-  rows.push(header.join(","));
+let header=[
+  "日付","開催","レース番号","コース","距離m",
+  "馬番","馬体","タイム","騎手",
+  "過去1","過去2","過去3",
+  "馬合計70","騎手点30","総合点100",
+  "ペース予想","指名馬番","購入","的中",
+  "複勝オッズ下","複勝オッズ上","メモ"
+];
+rows.push(header.join(","));
 
-  // ✅ 1R〜12Rを自動で全部回収
-  for(let r=1;r<=12;r++){
-    const key=`${STORAGE_PREFIX}_${place}_${r}`;
-    const data=JSON.parse(localStorage.getItem(key) || "null");
-    if(!data || !data.horses) continue;
+// 12R ループ
+for(let r=1;r<=12;r++){
+  const key=`${STORAGE_PREFIX}_${place}_${r}`;
+  const data=JSON.parse(localStorage.getItem(key) || "null");
+  if(!data || !data.horses) continue;
 
-    for(let i=1;i<=18;i++){
-      let h=data.horses[i-1]||{};
-      let row=[
-        csvEscape(data.date),
-        csvEscape(data.kaisai),
-        csvEscape(data.race),
-        csvEscape(data.surface),
-        csvEscape(data.distance*100),
+  for(let i=1;i<=18;i++){
+    let h=data.horses[i-1]||{};
+    let row=[
+      csvEscape(data.date),
+csvEscape(data.kaisai),
+csvEscape(data.race),
+csvEscape(data.surface),
+csvEscape(data.distance*100),
 
-        csvEscape(i),
-        csvEscape(h.body),
-        csvEscape(h.time),
-        csvEscape(h.jockey),
-        csvEscape(h.past1),
-        csvEscape(h.past2),
-        csvEscape(h.past3),
+csvEscape(i),
+csvEscape(h.body),
+csvEscape(h.time),
+csvEscape(h.jockey),
+csvEscape(h.past1),
+csvEscape(h.past2),
+csvEscape(h.past3),
 
-        "", "", "",   // ← 点数は再計算されるので空でOK
+// ★ UI の点数をそのまま出力（自動計算値）
+csvEscape(h.umaTotal || ""),
+csvEscape(h.kisyuPoint || ""),
+csvEscape(h.total || ""),
 
-        csvEscape(data.pace),
-        csvEscape(data.pickHorse),
-        csvEscape(data.buy),
-        csvEscape(data.hit),
-        csvEscape(data.oddsLow),
-        csvEscape(data.oddsHigh),
-        csvEscape(data.memo)
-      ];
-      rows.push(row.join(","));
-    }
+
+csvEscape(data.pace),
+csvEscape(data.pickHorse),
+csvEscape(data.buy),
+csvEscape(data.hit),
+csvEscape(data.oddsLow),
+csvEscape(data.oddsHigh),
+csvEscape(data.memo)
+
+    ];
+    rows.push(row.join(","));
   }
+}
+
 
   if(rows.length===1){
     alert("この開催に保存データがありません");
@@ -347,6 +389,10 @@ function importCSV(text){
     p2:idx("過去2"),
     p3:idx("過去3"),
 
+    uma:idx("馬合計70"),
+    kisyu:idx("騎手点30"),
+    total:idx("総合点100"),
+
     pace:idx("ペース予想"),
     pick:idx("指名馬番"),
     buy:idx("購入"),
@@ -357,7 +403,6 @@ function importCSV(text){
     memo:idx("メモ")
   };
 
-  // ✅ レース番号ごとに振り分けて復元
   rows.forEach(r=>{
     const race=Number(r[map.race]);
     if(!race || race<1 || race>12) return;
@@ -366,22 +411,15 @@ function importCSV(text){
     const key=`${STORAGE_PREFIX}_${place}_${race}`;
 
     let data=JSON.parse(localStorage.getItem(key) || `{
-      "date":"",
-      "kaisai":"${place}",
-      "race":${race},
-      "surface":"芝",
-      "distance":24,
-      "pace":3,
-      "pickHorse":1,
-      "buy":"",
-      "hit":"",
-      "oddsLow":"",
-      "oddsHigh":"",
-      "memo":"",
+      "date":"", "kaisai":"${place}", "race":${race},
+      "surface":"芝", "distance":24, "pace":3,
+      "pickHorse":1, "buy":"", "hit":"",
+      "oddsLow":"", "oddsHigh":"", "memo":"",
       "horses":[]
     }`);
 
     const i=Number(r[map.horse])-1;
+
     data.date=r[map.date];
     data.surface=r[map.course];
     data.distance=Number(r[map.dist])/100;
@@ -401,7 +439,10 @@ function importCSV(text){
       jockey:r[map.jockey],
       past1:r[map.p1],
       past2:r[map.p2],
-      past3:r[map.p3]
+      past3:r[map.p3],
+      umaTotal:r[map.uma],
+      kisyuPoint:r[map.kisyu],
+      total:r[map.total]
     };
 
     localStorage.setItem(key,JSON.stringify(data));
@@ -409,6 +450,7 @@ function importCSV(text){
 
   alert("開催データを一括復元しました");
 }
+
 </script>
 
 </body>
