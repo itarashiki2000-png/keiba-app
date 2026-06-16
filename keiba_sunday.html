@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>競馬アプリ（日曜版・完成版）</title>
+<title>競馬アプリ（日曜版・GPT予想連携版）</title>
 <style>
   :root{
-    --bg-main:#140b12;
+    --bg-main:#07111a;
     --bg-input:#444;
     --bg-readonly:#222;
     --border:#555;
@@ -112,7 +112,7 @@
 <body>
 
 <div class="title-row">
-  <h2>競馬アプリ（日曜版・完成版）</h2>
+  <h2>競馬アプリ（日曜版・GPT予想連携版）</h2>
   <span id="coreNote" class="title-note">前半コア：脚色加点あり</span>
 </div>
 
@@ -178,7 +178,7 @@
       <th>枠</th>
       <th>馬番</th>
       <th>脚色</th>
-      <th>馬体</th>
+      <th><button class="small-btn" style="padding:2px 8px" onclick="copyBodyScores()">馬体コピー</button></th>
       <th>タイム</th>
       <th><button class="small-btn" style="padding:2px 8px" onclick="openBatchModal('jockey')">騎手(複勝率)</button></th>
       <th><button class="small-btn" style="padding:2px 8px" onclick="openBatchModal('jisseki')">実績(ポイント)</button></th>
@@ -260,7 +260,7 @@ const STORAGE_PREFIX = "keiba_app_sunday";
 const WEIGHT = { HORSE: 80, JOCKEY: 20 };
 const THRESH = { UMA_MIN: 14.0, GAP_DANGO: 1.5, JOCKEY_RATIO_MAX: 0.25 };
 const SOFTMAX_SCALE = 0.25;
-const FRONT_CORE_RACES = new Set([1,2,3,4,5,6,12]);
+const FRONT_CORE_RACES = new Set([1,2,3,4,5,6]);
 const FRONT_CORE_STYLE_BONUS = { "逃げ":3, "先行":5, "差し":2, "中段":0, "追込":0, "":0 };
 
 const WAKU_COLORS = {
@@ -616,6 +616,28 @@ async function copyTotals(){
   catch(e){ prompt("コピーできない場合は、ここから手動コピーしてください：", text); }
 }
 
+
+function formatSignedScore(v){
+  const num = Number(v);
+  if(!isFinite(num) || String(v).trim() === "") return "0";
+  return num > 0 ? "+" + String(num) : String(num);
+}
+
+async function copyBodyScores(){
+  if(!selectedKaisai || !selectedRace){ alert("開催とレースを選択してください"); return; }
+  normalizeRunnersInput();
+  const lines = [];
+  lines.push(`${selectedKaisai} ${selectedRace}R 馬体評価`);
+  lines.push(`頭数：${nRunners()}`);
+  lines.push("");
+  for(let i=1;i<=nRunners();i++){
+    lines.push(`${i} ${formatSignedScore(document.getElementById("body_"+i).value)}`);
+  }
+  const text = lines.join("\n");
+  try{ await navigator.clipboard.writeText(text); alert("馬体評価をコピーしました"); }
+  catch(e){ prompt("コピーできない場合は、ここから手動コピーしてください：", text); }
+}
+
 function onPickHorseChanged(){ pickHorseManuallyChanged = true; saveData(); }
 
 let batchMode = null;
@@ -866,5 +888,3 @@ updateCoreNote();
 
 </body>
 </html>
-</html>
-
